@@ -24,7 +24,6 @@
       },
       {
         "tab": "API Reference",
-        "openapi": "api-reference/game-verse.yaml",
         "groups": [
           {
             "group": "API Documentation",
