@@ -36,7 +36,14 @@
       },
       {
         "tab": "API Reference",
+        "openapi": "api-reference/game-verse.yaml"
         "groups": [
+          {
+            "group": "API Documentation",
+            "pages": [
+              "api-reference/introduction"
+            ]
+          },
           {
             "group": "Studio",
             "pages": [
@@ -114,22 +121,6 @@
               "api-reference/endpoint/authentication/login",
               "api-reference/endpoint/authentication/refresh-token",
               "api-reference/endpoint/authentication/logout"
-            ]
-          },
-
-          {
-            "group": "API Documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint Examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
             ]
           }
         ]

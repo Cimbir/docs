@@ -1,0 +1,2701 @@
+openapi: 3.0.0
+info:
+  title: Game-Verse API
+  description: |
+    Game-Verse is a comprehensive gaming platform supporting puzzle, FPS, and racing games 
+    with real-time multiplayer functionality, achievements, and seasonal leaderboards.
+    
+    ## Authentication
+    This API uses JWT Bearer tokens for authentication. Include the token in the Authorization header:
+    ```
+    Authorization: Bearer <jwt_token>
+    ```
+    
+    ## Rate Limiting
+    - General API: 1000 requests/hour per IP
+    - Authentication: 5 requests/minute per IP
+    - Match Creation: 10 requests/minute per player
+    
+    ## Pagination
+    Use `page` and `limit` parameters. Response includes pagination headers.
+    
+    ## Filtering & Sorting
+    Most list endpoints support filtering and sorting via query parameters.
+  version: 1.0.0
+  contact:
+    name: Game-Verse API Support
+    email: api-support@gameverse.com
+  license:
+    name: Theneo
+    url: https://youtu.be/dQw4w9WgXcQ?si=OCaHoS4DUgV72bL3
+
+servers:
+  - url: https://4zv00.wiremockapi.cloud/
+    description: Mock Server (wiremockapi)
+  - url: https://fe9e9081-1571-44d6-ad2c-541c6e3d9856.mock.pstmn.io
+    description: Mock Server (Postman)
+
+security:
+  - bearerAuth: []
+
+paths:
+# Studios Endpoints
+  /studios:
+    get:
+      tags:
+        - Studio
+      summary: List studios
+      description: Retrieve a paginated list of studios with optional filtering
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+        - name: location
+          in: query
+          description: Filter by studio location/city
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+            X-Page-Count:
+              $ref: '#/components/headers/X-Page-Count'
+            X-Current-Page:
+              $ref: '#/components/headers/X-Current-Page'
+            X-Per-Page:
+              $ref: '#/components/headers/X-Per-Page'
+            Link:
+              $ref: '#/components/headers/Link'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Studio'
+                  _links:
+                    $ref: '#/components/schemas/PaginationLinks'
+    post:
+      tags:
+        - Studio
+      summary: Create studio profile
+      description: Create a new studio profile
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudioCreate'
+      responses:
+        '201':
+          description: Studio created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Studio'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /studios/{studioId}:
+    get:
+      tags:
+        - Studio
+      summary: Get studio by ID
+      description: Retrieve a specific studio by their ID
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/StudioIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Studio'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Studio
+      summary: Update studio
+      description: Update studio profile (owner authentication required)
+      parameters:
+        - $ref: '#/components/parameters/StudioIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudioUpdate'
+      responses:
+        '200':
+          description: Studio updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Studio'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Studio
+      summary: Delete studio profile
+      description: Delete studio profile (owner authentication required)
+      parameters:
+        - $ref: '#/components/parameters/StudioIdParam'
+      responses:
+        '204':
+          description: Studio deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /studios/{studioId}/verify:
+    post:
+      tags:
+        - Studio
+      summary: Verify studio ownership
+      description: Verify studio ownership using a verification code (owner authentication required)
+      parameters:
+        - $ref: '#/components/parameters/StudioIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                verification_code:
+                  type: string
+                  description: The verification code provided by the studio
+                  example: "123456"
+      responses:
+        '200':
+          description: Studio verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Studio'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /studios/{studioId}/falsify:
+    post:
+      tags:
+        - Studio
+      summary: Falsify studio ownership
+      description: Falsify studio ownership (owner authentication required)
+      parameters:
+        - $ref: '#/components/parameters/StudioIdParam'
+      responses:
+        '204':
+          description: Studio unverfied successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Games Endpoints
+  /games:
+    get:
+      tags:
+        - Games
+      summary: List games
+      description: Retrieve a paginated list of games with optional filtering and sorting
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+        - name: genre
+          in: query
+          description: Filter by game genres (comma-separated)
+          schema:
+            type: string
+            example: "puzzle,fps"
+        - name: studio_id
+          in: query
+          description: Filter by studio ID
+          schema:
+            type: string
+            format: uuid
+        - name: rating_min
+          in: query
+          description: Minimum rating filter
+          schema:
+            type: number
+            minimum: 0
+            maximum: 5
+      responses:
+        '200':
+          description: Successful response
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+            X-Page-Count:
+              $ref: '#/components/headers/X-Page-Count'
+            X-Current-Page:
+              $ref: '#/components/headers/X-Current-Page'
+            X-Per-Page:
+              $ref: '#/components/headers/X-Per-Page'
+            Link:
+              $ref: '#/components/headers/Link'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Game'
+                  _links:
+                    $ref: '#/components/schemas/PaginationLinks'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+        - Games
+      summary: Create a new game
+      description: Create a new game (studio authentication required)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameCreate'
+      responses:
+        '201':
+          description: Game created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /games/{gameId}:
+    get:
+      tags:
+        - Games
+      summary: Get game by ID
+      description: Retrieve a specific game by its ID
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Games
+      summary: Update game
+      description: Update an entire game resource (studio authentication required)
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameUpdate'
+      responses:
+        '200':
+          description: Game updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+    patch:
+      tags:
+        - Games
+      summary: Partially update game
+      description: Partially update a game resource (studio authentication required)
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GamePatch'
+      responses:
+        '200':
+          description: Game updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+    delete:
+      tags:
+        - Games
+      summary: Delete game
+      description: Delete a game (studio authentication required)
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+      responses:
+        '204':
+          description: Game deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  # Players Endpoints
+  /players:
+    get:
+      tags:
+        - Players
+      summary: List players
+      description: Retrieve a paginated list of players with optional filtering
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+      responses:
+        '200':
+          description: Successful response
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+            X-Page-Count:
+              $ref: '#/components/headers/X-Page-Count'
+            X-Current-Page:
+              $ref: '#/components/headers/X-Current-Page'
+            X-Per-Page:
+              $ref: '#/components/headers/X-Per-Page'
+            Link:
+              $ref: '#/components/headers/Link'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Player'
+                  _links:
+                    $ref: '#/components/schemas/PaginationLinks'
+    post:
+      tags:
+        - Players
+      summary: Create player account
+      description: Create a new player account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerCreate'
+      responses:
+        '201':
+          description: Player created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /players/{playerId}:
+    get:
+      tags:
+        - Players
+      summary: Get player by ID
+      description: Retrieve a specific player by their ID
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Players
+      summary: Update player
+      description: Update player profile (self-authentication required)
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerUpdate'
+      responses:
+        '200':
+          description: Player updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Players
+      summary: Delete player account
+      description: Delete player account (self-authentication required)
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdParam'
+      responses:
+        '204':
+          description: Player deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /players/{playerId}/achievements:
+    get:
+      tags:
+        - Players
+      summary: Get player achievements
+      description: Retrieve achievements earned by a specific player
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+        - name: game_id
+          in: query
+          description: Filter by game ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PlayerAchievement'
+                  _links:
+                    $ref: '#/components/schemas/PaginationLinks'
+
+  /players/{playerId}/matches:
+    get:
+      tags:
+        - Players
+      summary: Get player matches
+      description: Retrieve matches participated in by a specific player
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+        - name: game_id
+          in: query
+          description: Filter by game ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Match'
+                  _links:
+                    $ref: '#/components/schemas/PaginationLinks'
+
+  /players/{playerId}/leaderboards:
+    get:
+      tags:
+        - Players
+      summary: Get player leaderboard entries
+      description: Retrieve leaderboard entries for a specific player
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdParam'
+        - name: type
+          in: query
+          description: Filter by leaderboard type
+          schema:
+            $ref: '#/components/schemas/LeaderboardType'
+        - name: season
+          in: query
+          description: Filter by season
+          schema:
+            type: string
+            example: "2024-winter"
+        - name: game_id
+          in: query
+          description: Filter by game ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LeaderboardEntry'
+                  _links:
+                    $ref: '#/components/schemas/PaginationLinks'
+
+  # Matches Endpoints
+  /games/{gameId}/matches:
+    get:
+      tags:
+        - Matches
+      summary: List matches
+      description: Retrieve a paginated list of matches with optional filtering
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+        - name: status
+          in: query
+          description: Filter by match status
+          schema:
+            $ref: '#/components/schemas/MatchStatus'
+        - name: player_id
+          in: query
+          description: Filter by player ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+            X-Page-Count:
+              $ref: '#/components/headers/X-Page-Count'
+            X-Current-Page:
+              $ref: '#/components/headers/X-Current-Page'
+            X-Per-Page:
+              $ref: '#/components/headers/X-Per-Page'
+            Link:
+              $ref: '#/components/headers/Link'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Match'
+                  _links:
+                    $ref: '#/components/schemas/PaginationLinks'
+    post:
+      tags:
+        - Matches
+      summary: Create match
+      description: Create a new match
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchCreate'
+      responses:
+        '201':
+          description: Match created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /games/{gameId}/matches/{matchId}:
+    get:
+      tags:
+        - Matches
+      summary: Get match by ID
+      description: Retrieve a specific match by its ID
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+        - $ref: '#/components/parameters/MatchIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Matches
+      summary: Update match
+      description: Update an existing match (creator or admin only)
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+        - $ref: '#/components/parameters/MatchIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchUpdate'
+      responses:
+        '200':
+          description: Match updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags:
+        - Matches
+      summary: Cancel match
+      description: Cancel a match (creator or admin only)
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+        - $ref: '#/components/parameters/MatchIdParam'
+      responses:
+        '204':
+          description: Match cancelled successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /games/{gameId}/matches/{matchId}/join/{playerId}:
+    post:
+      tags:
+        - Matches
+      summary: Join match
+      description: Join an existing match
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+        - $ref: '#/components/parameters/MatchIdParam'
+        - $ref: '#/components/parameters/PlayerIdParam'
+      responses:
+        '200':
+          description: Successfully joined match
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /games/{gameId}/matches/{matchId}/result/{playerId}:
+    get:
+      tags:
+        - Matches
+      summary: Get match result for player
+      description: Retrieve the result of a match for a specific player
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+        - $ref: '#/components/parameters/MatchIdParam'
+        - $ref: '#/components/parameters/PlayerIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /games/{gameId}/matches/{matchId}/leave/{playerId}:
+    post:
+      tags:
+        - Matches
+      summary: Leave match
+      description: Leave a match
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+        - $ref: '#/components/parameters/MatchIdParam'
+        - $ref: '#/components/parameters/PlayerIdParam'
+      responses:
+        '200':
+          description: Successfully left match
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /games/{gameId}/matches/{matchId}/start:
+    post:
+      tags:
+        - Matches
+      summary: Start match
+      description: Start a match (system or match creator only)
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+        - $ref: '#/components/parameters/MatchIdParam'
+      responses:
+        '200':
+          description: Match started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /games/{gameId}/matches/{matchId}/end:
+    post:
+      tags:
+        - Matches
+      summary: End match
+      description: End a match with results (system only)
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+        - $ref: '#/components/parameters/MatchIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchResults'
+      responses:
+        '200':
+          description: Match ended successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  # Achievements Endpoints
+  /games/{gameId}/achievements:
+    get:
+      tags:
+        - Achievements
+      summary: List achievements
+      description: Retrieve a paginated list of achievements
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+        - name: rarity
+          in: query
+          description: Filter by rarity
+          schema:
+            $ref: '#/components/schemas/AchievementRarity'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Achievement'
+                  _links:
+                    $ref: '#/components/schemas/PaginationLinks'
+    post:
+      tags:
+        - Achievements
+      summary: Create achievement
+      description: Create a new achievement (studio authentication required)
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AchievementCreate'
+      responses:
+        '201':
+          description: Achievement created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Achievement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /games/{gameId}/achievements/{achievementId}:
+    get:
+      tags:
+        - Achievements
+      summary: Get achievement by ID
+      description: Retrieve a specific achievement by its ID
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+        - $ref: '#/components/parameters/AchievementIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Achievement'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Achievements
+      summary: Update achievement
+      description: Update an achievement (studio authentication required)
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+        - $ref: '#/components/parameters/AchievementIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AchievementUpdate'
+      responses:
+        '200':
+          description: Achievement updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Achievement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+    delete:
+      tags:
+        - Achievements
+      summary: Delete achievement
+      description: Delete an achievement (studio authentication required)
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+        - $ref: '#/components/parameters/AchievementIdParam'
+      responses:
+        '204':
+          description: Achievement deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /players/{playerId}/achievements/{achievementId}/award:
+    post:
+      tags:
+        - Achievements
+      summary: Award achievement
+      description: Award an achievement to a player (system authentication required)
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdParam'
+        - $ref: '#/components/parameters/AchievementIdParam'
+      responses:
+        '201':
+          description: Achievement awarded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerAchievement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /players/{playerId}/games:
+    get:
+      tags:
+        - Players
+      summary: Get player games
+      description: Retrieve games owned or played by a specific player
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Game'
+                  _links:
+                    $ref: '#/components/schemas/PaginationLinks'
+
+  # Leaderboards Endpoints
+  /leaderboards:
+    get:
+      tags:
+        - Leaderboards
+      summary: List leaderboards
+      description: Retrieve a list of available leaderboards
+      security: []
+      parameters:
+        - name: game_id
+          in: query
+          description: Filter by game ID
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          description: Filter by leaderboard type
+          schema:
+            $ref: '#/components/schemas/LeaderboardType'
+        - name: season
+          in: query
+          description: Filter by season
+          schema:
+            type: string
+            example: "2024-winter"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Leaderboard'
+
+  /leaderboards/{leaderboardId}:
+    get:
+      tags:
+        - Leaderboards
+      summary: Get leaderboard by ID
+      description: Retrieve a specific leaderboard by its ID
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/LeaderboardIdParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: offset
+          in: query
+          description: Number of entries to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leaderboard'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /leaderboards/current/{gameId}:
+    get:
+      tags:
+        - Leaderboards
+      summary: Get current game leaderboard
+      description: Retrieve the current season leaderboard for a specific game
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/GameIdParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: offset
+          in: query
+          description: Number of entries to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leaderboard'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Authentication Endpoints
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login
+      description: Authenticate user and receive JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh token
+      description: Refresh JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout
+      description: Invalidate JWT token
+      responses:
+        '204':
+          description: Logout successful
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+  parameters:
+    StudioIdParam:
+      name: studioId
+      in: path
+      required: true
+      description: Unique identifier for the studio
+      schema:
+        type: string
+        format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+    GameIdParam:
+      name: gameId
+      in: path
+      required: true
+      description: Game ID
+      schema:
+        type: string
+        format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+    PlayerIdParam:
+      name: playerId
+      in: path
+      required: true
+      description: Player ID
+      schema:
+        type: string
+        format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+    MatchIdParam:
+      name: matchId
+      in: path
+      required: true
+      description: Match ID
+      schema:
+        type: string
+        format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+    AchievementIdParam:
+      name: achievementId
+      in: path
+      required: true
+      description: Achievement ID
+      schema:
+        type: string
+        format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+    LeaderboardIdParam:
+      name: leaderboardId
+      in: path
+      required: true
+      description: Leaderboard ID
+      schema:
+        type: string
+        format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+    PageParam:
+      name: page
+      in: query
+      description: Page number
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+        example: 1
+    LimitParam:
+      name: limit
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+        example: 20
+    SortParam:
+      name: sort
+      in: query
+      description: Sort field
+      schema:
+        type: string
+        default: created_at
+        example: "name"
+    OrderParam:
+      name: order
+      in: query
+      description: Sort order
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+        example: "desc"
+
+  headers:
+    X-Total-Count:
+      description: Total number of items
+      schema:
+        type: integer
+        example: 200
+    X-Page-Count:
+      description: Total number of pages
+      schema:
+        type: integer
+        example: 10
+    X-Current-Page:
+      description: Current page number
+      schema:
+        type: integer
+        example: 1
+    X-Per-Page:
+      description: Items per page
+      schema:
+        type: integer
+        example: 20
+    Link:
+      description: Pagination links
+      schema:
+        type: string
+        example: '<https://api.gameverse.com/v1/games?page=2>; rel="next"'
+    X-RateLimit-Limit:
+      description: Request limit per window
+      schema:
+        type: integer
+        example: 1000
+    X-RateLimit-Remaining:
+      description: Remaining requests in current window
+      schema:
+        type: integer
+        example: 900
+    X-RateLimit-Reset:
+      description: Unix timestamp when rate limit resets
+      schema:
+        type: integer
+        example: 1700000000
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "INVALID_INPUT"
+              message: "The provided data is invalid"
+              details:
+                - field: "email"
+                  message: "Invalid email format"
+              timestamp: "2024-01-15T10:30:00Z"
+              request_id: "req_12345"
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "UNAUTHORIZED"
+              message: "Authentication required"
+              timestamp: "2024-01-15T10:30:00Z"
+              request_id: "req_12345"
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "FORBIDDEN"
+              message: "Insufficient permissions"
+              timestamp: "2024-01-15T10:30:00Z"
+              request_id: "req_12345"
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "NOT_FOUND"
+              message: "Resource not found"
+              timestamp: "2024-01-15T10:30:00Z"
+              request_id: "req_12345"
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "CONFLICT"
+              message: "Resource conflict"
+              timestamp: "2024-01-15T10:30:00Z"
+              request_id: "req_12345"
+    UnprocessableEntity:
+      description: Unprocessable entity
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "VALIDATION_ERROR"
+              message: "Validation failed"
+              details:
+                - field: "email"
+                  message: "Email already exists"
+              timestamp: "2024-01-15T10:30:00Z"
+              request_id: "req_12345"
+    TooManyRequests:
+      description: Too many requests
+      headers:
+        X-RateLimit-Limit:
+          $ref: '#/components/headers/X-RateLimit-Limit'
+        X-RateLimit-Remaining:
+          $ref: '#/components/headers/X-RateLimit-Remaining'
+        X-RateLimit-Reset:
+          $ref: '#/components/headers/X-RateLimit-Reset'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "RATE_LIMIT_EXCEEDED"
+              message: "Too many requests"
+              details:
+                type: array
+                description: Retry information
+                items:
+                  type: object
+                  properties:
+                    retry_after:
+                      type: integer
+                      description: Seconds to wait before retrying
+                  required:
+                    - retry_after
+              timestamp: "2024-01-15T10:30:00Z"
+              request_id: "req_12345"
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "INTERNAL_SERVER_ERROR"
+              message: "An unexpected error occurred"
+              timestamp: "2024-01-15T10:30:00Z"
+              request_id: "req_12345"
+
+  schemas:
+      # Core Resource Schemas
+    Studio:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the studio
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          description: Studio name
+          example: "Supergiant games"
+        description:
+          type: string
+          description: Studio description
+          example: "Indie company working on innovative single-player games since 2009"
+        location:
+          type: object
+          properties:
+            city:
+              type: string
+              example: "San Francisco"
+            state:
+              type: string
+              example: "California"
+            country:
+              type: string
+              example: "United States"
+          required:
+            - city
+            - country
+        website:
+          type: string
+          format: uri
+          description: Studio website URL
+          example: "https://www.supergiantgames.com"
+        logo_url:
+          type: string
+          format: uri
+          description: URL to studio logo image
+          example: "https://images.ctfassets.net/5owu3y35gz1g/515iBuHUzspUUF0fVrrTsR/919af2bab70c70204c423070ecb2c06a/logo_sg_final2.png?w=250&h=96&q=50&fit=fill"
+        verified:
+          type: boolean
+          description: Whether the studio profile is verified
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          description: Studio profile creation timestamp
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Studio profile last update timestamp
+          example: "2024-03-20T14:45:00Z"
+        _links:
+          type: object
+          properties:
+            self:
+              type: string
+              format: uri
+              example: "/api/v1/studios/123e4567-e89b-12d3-a456-426614174000"
+            games:
+              type: string
+              format: uri
+              example: "/api/v1/games/?studio_id=123e4567-e89b-12d3-a456-426614174000"
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+
+    StudioCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Studio name
+          example: "Supergiant Games"
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Studio password (minimum 8 characters)
+          example: "securepassword123"
+        description:
+          type: string
+          maxLength: 1000
+          description: Studio description
+          example: "Indie company working on innovative single-player games since 2009"
+        location:
+          type: object
+          properties:
+            city:
+              type: string
+              example: "San Francisco"
+            state:
+              type: string
+              example: "California"
+            country:
+              type: string
+              example: "United States"
+          required:
+            - city
+            - country
+        website:
+          type: string
+          format: uri
+          description: Studio website URL
+          example: "https://www.supergiantgames.com"
+        logo_url:
+          type: string
+          format: uri
+          description: URL to studio logo image
+          example: "https://images.ctfassets.net/5owu3y35gz1g/515iBuHUzspUUF0fVrrTsR/919af2bab70c70204c423070ecb2c06a/logo_sg_final2.png?w=250&h=96&q=50&fit=fill"
+      required:
+        - name
+
+    StudioUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Studio name
+          example: "Supergiant Games"
+        description:
+          type: string
+          maxLength: 1000
+          description: Studio description
+          example: "Indie company working on innovative single-player games since 2009"
+        location:
+          type: object
+          properties:
+            city:
+              type: string
+              example: "San Francisco"
+            state:
+              type: string
+              example: "California"
+            country:
+              type: string
+              example: "United States"
+          required:
+            - city
+            - country
+        website:
+          type: string
+          format: uri
+          description: Studio website URL
+          example: "https://www.supergiantgames.com"
+        logo_url:
+          type: string
+          format: uri
+          description: URL to studio logo image
+          example: "https://images.ctfassets.net/5owu3y35gz1g/515iBuHUzspUUF0fVrrTsR/919af2bab70c70204c423070ecb2c06a/logo_sg_final2.png?w=250&h=96&q=50&fit=fill"
+      additionalProperties: false
+
+    Game:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique game identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        title:
+          type: string
+          description: Game title
+          example: "Hades"
+        description:
+          type: string
+          description: Game description
+          example: "A rogue-like dungeon crawler where you play as Zagreus, the son of Hades, trying to escape the Underworld."
+        genre:
+          $ref: '#/components/schemas/GameGenre'
+        studio_id:
+          type: string
+          format: uuid
+          description: Studio that published the game
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        version:
+          type: string
+          description: Game version
+          example: "1.2.3"
+        release_date:
+          type: string
+          format: date-time
+          description: Game release date
+          example: "2024-01-15T10:30:00Z"
+        rating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+          description: Average game rating
+          example: 4.5
+        tags:
+          type: array
+          items:
+            type: string
+          description: Game tags
+          example: ["history", "story", "action", "adventure"]
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2024-03-20T14:45:00Z"
+        status:
+          type: string
+          enum: [active, inactive, archived]
+          description: Game status
+          example: "active"
+        _links:
+          type: object
+          properties:
+            self:
+              type: string
+              format: uri
+              example: "/api/v1/games/123e4567-e89b-12d3-a456-426614174000"
+            studio:
+              type: string
+              format: uri
+              example: "/api/v1/studios/123e4567-e89b-12d3-a456-426614174000"
+            matches:
+              type: string
+              format: uri
+              example: "/api/v1/games/123e4567-e89b-12d3-a456-426614174000/matches"
+            achievements:
+              type: string
+              format: uri
+              example: "/api/v1/games/123e4567-e89b-12d3-a456-426614174000/achievements"
+            games:
+              type: string
+              format: uri
+              example: "/api/v1/leaderboards/current/123e4567-e89b-12d3-a456-426614174000"
+      required:
+        - id
+        - title
+        - genre
+        - studio_id
+        - version
+        - created_at
+        - updated_at
+
+    GameCreate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Game title
+          example: "Hades"
+        description:
+          type: string
+          maxLength: 1000
+          description: Game description
+          example: "A rogue-like dungeon crawler where you play as Zagreus, the son of Hades, trying to escape the Underworld."
+        genre:
+          $ref: '#/components/schemas/GameGenre'
+        version:
+          type: string
+          pattern: '^\d+\.\d+\.\d+'
+          description: Game version (semantic versioning)
+        release_date:
+          type: string
+          format: date-time
+          description: Game release date
+          example: "2024-01-15T10:30:00Z"
+        tags:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 50
+          maxItems: 10
+          description: Game tags
+          example: ["history", "story", "action", "adventure"]
+        status:
+          type: string
+          enum: [active, inactive, archived]
+          description: Game status
+          example: "active"
+      required:
+        - title
+        - genre
+        - version
+
+    GameUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Game title
+          example: "Hades"
+        description:
+          type: string
+          maxLength: 1000
+          description: Game description
+          example: "A rogue-like dungeon crawler where you play as Zagreus, the son of Hades, trying to escape the Underworld."
+        version:
+          type: string
+          pattern: '^\d+\.\d+\.\d+'
+          description: Game version
+          example: "1.2.3"
+        release_date:
+          type: string
+          format: date-time
+          description: Game release date
+          example: "2024-01-15T10:30:00Z"
+        tags:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 50
+          maxItems: 10
+          description: Game tags
+          example: ["history", "story", "action", "adventure"]
+        status:
+          type: string
+          enum: [active, inactive, archived]
+          description: Game status
+          example: "active"
+      required:
+        - title
+        - version
+
+    GamePatch:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Game title
+          example: "Hades"
+        description:
+          type: string
+          maxLength: 1000
+          description: Game description
+          example: "A rogue-like dungeon crawler where you play as Zagreus, the son of Hades, trying to escape the Underworld."
+        version:
+          type: string
+          pattern: '^\d+\.\d+\.\d+'
+          description: Game version
+          example: "1.2.3"
+        release_date:
+          type: string
+          format: date-time
+          description: Game release date
+          example: "2024-01-15T10:30:00Z"
+        tags:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 50
+          maxItems: 10
+          description: Game tags
+          example: ["history", "story", "action", "adventure"]
+        status:
+          type: string
+          enum: [active, inactive, archived]
+          description: Game status
+          example: "active"
+
+    Player:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique player identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        username:
+          type: string
+          description: Player username
+          example: "leeroyjenkins"
+        email:
+          type: string
+          format: email
+          description: Player email address
+          example: "leeroyjenkins@example.com"
+        display_name:
+          type: string
+          description: Player display name
+          example: "Leeroy Jenkins"
+        avatar_url:
+          type: string
+          format: uri
+          description: URL to player avatar image
+          example: "https://example.com/avatars/leeroyjenkins.png"
+        games_played:
+          type: integer
+          minimum: 0
+          description: Number of games played
+          example: 150
+        achievements_count:
+          type: integer
+          minimum: 0
+          description: Number of achievements earned
+          example: 25
+        created_at:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: "2024-01-15T10:30:00Z"
+        last_active:
+          type: string
+          format: date-time
+          description: Last activity timestamp
+          example: "2024-03-20T14:45:00Z"
+        _links:
+          type: object
+          properties:
+            self:
+              type: string
+              format: uri
+              example: "/api/v1/players/123e4567-e89b-12d3-a456-426614174000"
+            achievements:
+              type: string
+              format: uri
+              example: "/api/v1/players/123e4567-e89b-12d3-a456-426614174000/achievements"
+            matches:
+              type: string
+              format: uri
+              example: "/api/v1/players/123e4567-e89b-12d3-a456-426614174000/matches"
+            leaderboard:
+              type: string
+              format: uri
+              example: "/api/v1/players/123e4567-e89b-12d3-a456-426614174000/leaderboard"
+            games:
+              type: string
+              format: uri
+              example: "/api/v1/players/123e4567-e89b-12d3-a456-426614174000/games"
+      required:
+        - id
+        - username
+        - email
+        - games_played
+        - achievements_count
+        - created_at
+        - last_active
+
+    PlayerCreate:
+      type: object
+      properties:
+        username:
+          type: string
+          pattern: '^[a-zA-Z0-9_]{3,20}'
+          description: Player username (3-20 characters, alphanumeric and underscore only)
+          example: "leeroyjenkins"
+        email:
+          type: string
+          format: email
+          description: Player email address
+          example: "leeroyjenkins@example.com"
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Player password (minimum 8 characters)
+          example: "securepassword123"
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Player display name
+          example: "Leeroy Jenkins"
+        avatar_url:
+          type: string
+          format: uri
+          description: URL to player avatar image
+          example: "https://example.com/avatars/leeroyjenkins.png"
+      required:
+        - username
+        - email
+        - password
+
+    PlayerUpdate:
+      type: object
+      properties:
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Player display name
+          example: "Leeroy Jenkins"
+        avatar_url:
+          type: string
+          format: uri
+          description: URL to player avatar image
+          example: "https://example.com/avatars/leeroyjenkins.png"
+        email:
+          type: string
+          format: email
+          description: Player email address
+          example: "leeroyjenkins@example.com"
+
+    Match:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique match identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        game_id:
+          type: string
+          format: uuid
+          description: Game identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        status:
+          $ref: '#/components/schemas/MatchStatus'
+        mode:
+          $ref: '#/components/schemas/MatchMode'
+        max_players:
+          type: integer
+          minimum: 1
+          description: Maximum number of players
+          example: 10
+        current_players:
+          type: integer
+          minimum: 0
+          description: Current number of players
+          example: 5
+        started_at:
+          type: string
+          format: date-time
+          description: Match start timestamp
+          nullable: true
+          example: "2024-01-15T10:30:00Z"
+        ended_at:
+          type: string
+          format: date-time
+          description: Match end timestamp
+          nullable: true
+          example: "2024-01-15T11:00:00Z"
+        duration:
+          type: integer
+          minimum: 0
+          description: Match duration in seconds
+          nullable: true
+          example: 1800
+        results:
+          $ref: '#/components/schemas/MatchResults'
+        created_at:
+          type: string
+          format: date-time
+          description: Match creation timestamp
+          example: "2024-01-15T10:30:00Z"
+        _links:
+          type: object
+          properties:
+            self:
+              type: string
+              format: uri
+              example: "api/v1/games/123e4567-e89b-12d3-a456-426614174000/matches/123e4567-e89b-12d3-a456-426614174000"
+            game:
+              type: string
+              format: uri
+              example: "/api/v1/games/123e4567-e89b-12d3-a456-426614174000"
+            join:
+              type: string
+              format: uri
+              example: "/api/v1/games/123e4567-e89b-12d3-a456-426614174000/matches/123e4567-e89b-12d3-a456-426614174000/join"
+            start:
+              type: string
+              format: uri
+              example: "/api/v1/games/123e4567-e89b-12d3-a456-426614174000/matches/123e4567-e89b-12d3-a456-426614174000/start"
+      required:
+        - id
+        - game_id
+        - status
+        - mode
+        - max_players
+        - current_players
+        - created_at
+
+    MatchCreate:
+      type: object
+      properties:
+        game_id:
+          type: string
+          format: uuid
+          description: Game identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        mode:
+          $ref: '#/components/schemas/MatchMode'
+        max_players:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          description: Maximum number of players
+          example: 10
+        is_private:
+          type: boolean
+          default: false
+          description: Whether the match is private
+          example: false
+        settings:
+          type: object
+          description: Game-specific match settings
+          additionalProperties: true
+          example:
+            map_size: "large"
+            time_limit: 30
+            custom_rules: true
+      required:
+        - game_id
+        - mode
+        - max_players
+
+    MatchUpdate:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/MatchStatus'
+        mode:
+          $ref: '#/components/schemas/MatchMode'
+        max_players:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          description: Maximum number of players
+          example: 10
+        settings:
+          type: object
+          description: Game-specific match settings
+          additionalProperties: true
+          example:
+            map_size: "large"
+            time_limit: 30
+            custom_rules: true
+
+    MatchResult:
+      type: object
+      properties:
+        player_id:
+          type: string
+          format: uuid
+          description: Player identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        score:
+          type: integer
+          description: Player score
+          example: 1500
+        rank:
+          type: integer
+          minimum: 1
+          description: Player rank in match
+          example: 1
+        performance_data:
+          type: object
+          description: Additional performance metrics
+          additionalProperties: true
+          example:
+            kills: 10
+            deaths: 2
+            assists: 5
+      required:
+        - player_id
+        - score
+        - rank
+
+    MatchResults:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MatchResult'
+          description: Match results for all players
+          example:
+            - player_id: "123e4567-e89b-12d3-a456-426614174000"
+              score: 1500
+              rank: 1
+              performance_data:
+                kills: 10
+                deaths: 2
+                assists: 5
+        duration:
+          type: integer
+          minimum: 0
+          description: Match duration in seconds
+          example: 1800
+      required:
+        - results
+        - duration
+
+    Achievement:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique achievement identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        game_id:
+          type: string
+          format: uuid
+          description: Game identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          description: Achievement name
+          example: "First Victory"
+        description:
+          type: string
+          description: Achievement description
+          example: "Win your first match"
+        type:
+          $ref: '#/components/schemas/AchievementType'
+        criteria:
+          type: object
+          description: Achievement criteria
+          example:
+            matches_won: 1
+            time_played: "00:30:00"
+          additionalProperties: true
+        rarity:
+          $ref: '#/components/schemas/AchievementRarity'
+        icon_url:
+          type: string
+          format: uri
+          description: URL to achievement icon
+          example: "https://example.com/achievements/first_victory.png"
+        created_at:
+          type: string
+          format: date-time
+          description: Achievement creation timestamp
+          example: "2024-01-15T10:30:00Z"
+        _links:
+          type: object
+          properties:
+            self:
+              type: string
+              format: uri
+              example: "/api/v1/games/123e4567-e89b-12d3-a456-426614174000/achievements/123e4567-e89b-12d3-a456-426614174000"
+            game:
+              type: string
+              format: uri
+              example: "/api/v1/games/123e4567-e89b-12d3-a456-426614174000"
+            award:
+              type: string
+              format: uri
+              example: "/api/v1/players/123e4567-e89b-12d3-a456-426614174000/achievements/123e4567-e89b-12d3-a456-426614174000/award"
+      required:
+        - id
+        - game_id
+        - name
+        - description
+        - type
+        - rarity
+        - created_at
+
+    AchievementCreate:
+      type: object
+      properties:
+        game_id:
+          type: string
+          format: uuid
+          description: Game identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Achievement name
+          example: "First Victory"
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Achievement description
+          example: "Win your first match"
+        type:
+          $ref: '#/components/schemas/AchievementType'
+        criteria:
+          type: object
+          description: Achievement criteria
+          example:
+            matches_won: 1
+            time_played: "00:30:00"
+          additionalProperties: true
+        rarity:
+          $ref: '#/components/schemas/AchievementRarity'
+        icon_url:
+          type: string
+          format: uri
+          description: URL to achievement icon
+          example: "https://example.com/achievements/first_victory.png"
+      required:
+        - game_id
+        - name
+        - description
+        - type
+        - rarity
+
+    AchievementUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Achievement name
+          example: "First Victory"
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Achievement description
+          example: "Win your first match"
+        type:
+          $ref: '#/components/schemas/AchievementType'
+        criteria:
+          type: object
+          description: Achievement criteria
+          example:
+            matches_won: 1
+            time_played: "00:30:00"
+          additionalProperties: true
+        rarity:
+          $ref: '#/components/schemas/AchievementRarity'
+        icon_url:
+          type: string
+          format: uri
+          description: URL to achievement icon
+          example: "https://example.com/achievements/first_victory.png"
+      required:
+        - name
+        - description
+        - type
+        - rarity
+
+    PlayerAchievement:
+      type: object
+      properties:
+        achievement_id:
+          type: string
+          format: uuid
+          description: Achievement identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        player_id:
+          type: string
+          format: uuid
+          description: Player identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        earned_at:
+          type: string
+          format: date-time
+          description: Timestamp when achievement was earned
+          example: "2024-01-15T10:30:00Z"
+        achievement:
+          $ref: '#/components/schemas/Achievement'
+      required:
+        - achievement_id
+        - player_id
+        - earned_at
+
+    Leaderboard:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique leaderboard identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        game_id:
+          type: string
+          format: uuid
+          description: Game identifier
+          nullable: true
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        season:
+          type: string
+          description: Season identifier
+          example: "2024-winter"
+        type:
+          $ref: '#/components/schemas/LeaderboardType'
+        start_date:
+          type: string
+          format: date-time
+          description: Leaderboard start date
+          example: "2024-01-01T00:00:00Z"
+        end_date:
+          type: string
+          format: date-time
+          description: Leaderboard end date
+          nullable: true
+          example: "2024-01-31T23:59:59Z"
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeaderboardEntry'
+          description: Leaderboard entries
+          example:
+            - rank: 1
+              player_id: "123e4567-e89b-12d3-a456-426614174000"
+              player_name: "Leeroy Jenkins"
+              score: 1500
+              games_played: 10
+              updated_at: "2024-01-15T10:30:00Z"
+        _links:
+          type: object
+          properties:
+            self:
+              type: string
+              format: uri
+              example: "/api/v1/leaderboards/123e4567-e89b-12d3-a456-426614174000"
+            game:
+              type: string
+              format: uri
+              example: "/api/v1/games/123e4567-e89b-12d3-a456-426614174000"
+            current:
+              type: string
+              format: uri
+              example: "/api/v1/leaderboards/current/123e4567-e89b-12d3-a456-426614174000"
+      required:
+        - id
+        - season
+        - type
+        - start_date
+        - entries
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+          description: Player rank
+          example: 1
+        player_id:
+          type: string
+          format: uuid
+          description: Player identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        player_name:
+          type: string
+          description: Player display name
+          example: "Leeroy Jenkins"
+        score:
+          type: integer
+          minimum: 0
+          description: Player score
+          example: 1500
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2024-01-15T10:30:00Z"
+      required:
+        - rank
+        - player_id
+        - player_name
+        - score
+        - games_played
+        - updated_at
+
+    # Authentication Schemas
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Username or email
+        password:
+          type: string
+          description: Password
+      required:
+        - username
+        - password
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT access token
+        refresh_token:
+          type: string
+          description: JWT refresh token
+        token_type:
+          type: string
+          example: "Bearer"
+        expires_in:
+          type: integer
+          description: Token expiration in seconds
+        user_id:
+          type: string
+          format: uuid
+          description: User identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      required:
+        - access_token
+        - refresh_token
+        - token_type
+        - expires_in
+        - player
+
+    RefreshRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+          description: JWT refresh token
+      required:
+        - refresh_token
+
+    # Utility Schemas
+    PaginationLinks:
+      type: object
+      properties:
+        self:
+          type: string
+          format: uri
+          description: Link to current page
+        first:
+          type: string
+          format: uri
+          description: Link to first page
+          nullable: true
+        last:
+          type: string
+          format: uri
+          description: Link to last page
+          nullable: true
+        prev:
+          type: string
+          format: uri
+          description: Link to previous page
+          nullable: true
+        next:
+          type: string
+          format: uri
+          description: Link to next page
+          nullable: true
+      required:
+        - self
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Error code
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              description: Error message
+              example: "The provided data is invalid"
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    description: Field name
+                  message:
+                    type: string
+                    description: Field error message
+                required:
+                  - field
+                  - message
+              description: Detailed error information
+            timestamp:
+              type: string
+              format: date-time
+              description: Error timestamp
+            request_id:
+              type: string
+              description: Request identifier for debugging
+          required:
+            - code
+            - message
+            - timestamp
+            - request_id
+      required:
+        - error
+
+    # Enum Schemas
+    GameGenre:
+      type: string
+      enum:
+        - puzzle
+        - fps
+        - racing
+      description: Game genre
+
+    MatchStatus:
+      type: string
+      enum:
+        - waiting
+        - active
+        - completed
+        - cancelled
+      description: Match status
+
+    MatchMode:
+      type: string
+      enum:
+        - ranked
+        - casual
+      description: Match mode
+
+    AchievementType:
+      type: string
+      enum:
+        - score
+        - time
+        - completion
+        - special
+      description: Achievement type
+
+    AchievementRarity:
+      type: string
+      enum:
+        - common
+        - uncommon
+        - rare
+        - epic
+        - legendary
+      description: Achievement rarity
+
+    LeaderboardType:
+      type: string
+      enum:
+        - global
+        - weekly
+        - monthly
+        - seasonal
+      description: Leaderboard type
+
+tags:
+  - name: Games
+    description: Game catalog management
+  - name: Players
+    description: Player account management
+  - name: Matches
+    description: Multiplayer match system
+  - name: Achievements
+    description: Achievement system
+  - name: Leaderboards
+    description: Seasonal rankings and leaderboards
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Studio
+    description: Game studio information and management
+
+externalDocs:
+  description: Game-Verse API Documentation
+  url: https://youtu.be/dQw4w9WgXcQ?si=OCaHoS4DUgV72bL3
