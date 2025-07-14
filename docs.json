@@ -38,6 +38,86 @@
         "tab": "API Reference",
         "groups": [
           {
+            "group": "Studio",
+            "pages": [
+              "api-reference/endpoint/studio/list-studios",
+              "api-reference/endpoint/studio/create-studio-profile",
+              "api-reference/endpoint/studio/get-studio-by-id",
+              "api-reference/endpoint/studio/update-studio",
+              "api-reference/endpoint/studio/delete-studio-profile",
+              "api-reference/endpoint/studio/verify-studio-ownership",
+              "api-reference/endpoint/studio/falsify-studio-ownership"
+            ]
+          },
+          {
+            "group": "Games",
+            "pages": [
+              "api-reference/endpoint/games/list-games",
+              "api-reference/endpoint/games/create-a-new-game",
+              "api-reference/endpoint/games/get-game-by-id",
+              "api-reference/endpoint/games/update-game",
+              "api-reference/endpoint/games/delete-game",
+              "api-reference/endpoint/games/partially-update-game"
+            ]
+          },
+          {
+            "group": "Players",
+            "pages": [
+              "api-reference/endpoint/players/list-players",
+              "api-reference/endpoint/players/create-player-account",
+              "api-reference/endpoint/players/get-player-by-id",
+              "api-reference/endpoint/players/update-player",
+              "api-reference/endpoint/players/delete-player-account",
+              "api-reference/endpoint/players/get-player-achievements",
+              "api-reference/endpoint/players/get-player-matches",
+              "api-reference/endpoint/players/get-player-leaderboard-entries",
+              "api-reference/endpoint/players/get-player-games"
+            ]
+          },
+          {
+            "group": "Matches",
+            "pages": [
+              "api-reference/endpoint/matches/list-matches",
+              "api-reference/endpoint/matches/create-match",
+              "api-reference/endpoint/matches/get-match-by-id",
+              "api-reference/endpoint/matches/update-match",
+              "api-reference/endpoint/matches/cancel-match",
+              "api-reference/endpoint/matches/join-match",
+              "api-reference/endpoint/matches/get-match-result-for-player",
+              "api-reference/endpoint/matches/leave-match",
+              "api-reference/endpoint/matches/start-match",
+              "api-reference/endpoint/matches/end-match"
+            ]
+          },
+          {
+            "group": "Achievements",
+            "pages": [
+              "api-reference/endpoint/achievements/list-achievements",
+              "api-reference/endpoint/achievements/create-achievement",
+              "api-reference/endpoint/achievements/get-achievement-by-id",
+              "api-reference/endpoint/achievements/update-achievement",
+              "api-reference/endpoint/achievements/delete-achievement",
+              "api-reference/endpoint/achievements/award-achievement"
+            ]
+          },
+          {
+            "group": "Leaderboards",
+            "pages": [
+              "api-reference/endpoint/leaderboards/list-leaderboards",
+              "api-reference/endpoint/leaderboards/get-leaderboard-by-id",
+              "api-reference/endpoint/leaderboards/get-current-game-leaderboard"
+            ]
+          },
+          {
+            "group": "Authentication",
+            "pages": [
+              "api-reference/endpoint/authentication/login",
+              "api-reference/endpoint/authentication/refresh-token",
+              "api-reference/endpoint/authentication/logout"
+            ]
+          },
+
+          {
             "group": "API Documentation",
             "pages": [
               "api-reference/introduction"
